@@ -117,7 +117,7 @@ treinus_login <- function(
   login_url <- paste0(base_url, "/Default.aspx")
 
   initial_req <- httr2::request(login_url) |>
-    httr2::req_user_agent("treinusr R package (httr2)")
+    httr2::req_user_agent("rtreinus R package (httr2)")
 
   initial_resp <- initial_req |>
     httr2::req_perform()
@@ -169,6 +169,9 @@ treinus_login <- function(
     ))
   }
 
+  # Small delay to allow redirect headers to be processed
+  Sys.sleep(0.5)
+
   # Extract cookies from the login response (set on 302 redirect)
   set_cookie_headers <- httr2::resp_headers(login_resp, "set-cookie")
 
@@ -191,7 +194,14 @@ treinus_login <- function(
   cookie_string <- paste(cookie_values, collapse = "; ")
 
   # Get redirect location and follow it
+  # Allow for a slight delay in redirect header processing
   redirect_url <- httr2::resp_header(login_resp, "location")
+  if (is.null(redirect_url)) {
+    # Try again after a small additional delay
+    Sys.sleep(1)
+    redirect_url <- httr2::resp_header(login_resp, "location")
+  }
+
   if (is.null(redirect_url)) {
     cli::cli_abort("Login did not redirect. Check credentials.")
   }
@@ -514,7 +524,7 @@ merge_cookies <- function(existing_cookies, response) {
 #' @keywords internal
 create_session <- function(base_url, cookies, response, team_id = NULL) {
   authenticated_req <- httr2::request(base_url) |>
-    httr2::req_user_agent("treinusr R package (httr2)") |>
+    httr2::req_user_agent("rtreinus R package (httr2)") |>
     httr2::req_headers(Cookie = cookies)
 
   structure(

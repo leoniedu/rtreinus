@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
-# Development helper script for treinusr package
+# Development helper script for rtreinus package
 
 cat("═══════════════════════════════════════════════════════════════\n")
-cat("  treinusr Package Development Helper\n")
+cat("  rtreinus Package Development Helper\n")
 cat("═══════════════════════════════════════════════════════════════\n\n")
 
 # ── Install Development Dependencies ─────────────────────────────────────────

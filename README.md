@@ -1,15 +1,15 @@
-# treinusr
+# rtreinus
 
 <!-- badges: start -->
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
-**treinusr** provides authenticated access to the [Treinus](https://webapp.treinus.com.br) workout tracking platform API. Retrieve your training data, performance metrics, and workout history programmatically in R.
+**rtreinus** provides authenticated access to the [Treinus](https://webapp.treinus.com.br) workout tracking platform API. Retrieve your training data, performance metrics, and workout history programmatically in R.
 
 ## Installation
 
 ```r
 # install.packages("pak")
-pak::pak("leoniedu/treinusr")
+pak::pak("leoniedu/rtreinus")
 ```
 
 ## Setup
@@ -17,7 +17,7 @@ pak::pak("leoniedu/treinusr")
 ### Configure Credentials
 
 ```r
-library(treinusr)
+library(rtreinus)
 
 # Interactive setup (prompts for password securely)
 treinus_set_credentials()
@@ -36,7 +36,7 @@ This saves credentials to `~/.Renviron`. Restart R or run `readRenviron("~/.Renv
 ### Authenticate
 
 ```r
-library(treinusr)
+library(rtreinus)
 
 session <- treinus_auth()
 # If you have multiple teams, you'll be prompted to select one

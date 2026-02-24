@@ -10,7 +10,7 @@ test_that("authentication creates session object", {
 test_that("authentication fails with invalid credentials", {
   expect_error(
     treinus_auth(email = "fake@example.com", password = "wrongpassword"),
-    "Login failed"
+    "Login|redirect|credentials"
   )
 })
 

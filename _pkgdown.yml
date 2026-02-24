@@ -1,4 +1,4 @@
-url: https://yourusername.github.io/treinusr/
+url: https://leoniedu.github.io/rtreinus/
 template:
   bootstrap: 5
   bootswatch: flatly
@@ -50,5 +50,5 @@ navbar:
       href: news/index.html
     github:
       icon: fab fa-github fa-lg
-      href: https://github.com/yourusername/treinusr
+      href: https://github.com/leoniedu/rtreinus
       aria-label: GitHub

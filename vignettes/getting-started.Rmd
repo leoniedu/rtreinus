@@ -1,8 +1,8 @@
 ---
-title: "Getting Started with treinusr"
+title: "Getting Started with rtreinus"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting Started with treinusr}
+  %\VignetteIndexEntry{Getting Started with rtreinus}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 
 ```{r}
 # Install from GitHub
-pak::pak("edColumn/treinusr")
+pak::pak("leoniedu/rtreinus")
 ```
 
 ## Authentication Setup
@@ -29,7 +29,7 @@ pak::pak("edColumn/treinusr")
 Store your Treinus credentials using environment variables:
 
 ```{r}
-library(treinusr)
+library(rtreinus)
 
 # Interactive setup - will prompt for password securely
 treinus_set_credentials()
@@ -137,7 +137,7 @@ data <- treinus_parse_table(page)
 ## Workflow Example
 
 ```{r}
-library(treinusr)
+library(rtreinus)
 library(dplyr)
 
 # Authenticate
@@ -205,3 +205,4 @@ if (!treinus_session_valid(session)) {
   session <- treinus_auth()
 }
 ```
+

@@ -4,13 +4,35 @@
 \alias{treinus_get_exercises}
 \title{Get last exercises for an athlete}
 \usage{
-treinus_get_exercises(session, athlete_id = NULL)
+treinus_get_exercises(
+  athlete_id = NULL,
+  team_id = NULL,
+  session = NULL,
+  use_db = TRUE,
+  overwrite_db = FALSE,
+  .progress = TRUE,
+  .delay = 0.5
+)
 }
 \arguments{
-\item{session}{A treinus_session object from \code{\link[=treinus_auth]{treinus_auth()}}}
-
 \item{athlete_id}{Integer ID of the athlete. If NULL, uses \code{TREINUS_ATHLETE_ID}
-environment variable.}
+environment variable. Can be a vector of athlete IDs.}
+
+\item{team_id}{Integer ID of the team. If NULL, uses \code{TREINUS_TEAM_ID}
+environment variable or team from session.}
+
+\item{session}{A treinus_session object from \code{\link[=treinus_auth]{treinus_auth()}}. Optional when
+using cached data with \code{use_db = TRUE}.}
+
+\item{use_db}{Logical. Store results in local SQLite database? Default TRUE.}
+
+\item{overwrite_db}{Logical. If TRUE, overwrite existing records in database.
+If FALSE, skip duplicates. Default FALSE.}
+
+\item{.progress}{Show progress bar? Default TRUE.}
+
+\item{.delay}{Numeric. Seconds to wait between API requests. Default 0.5.
+Only applies to actual API calls, not cache hits.}
 }
 \value{
 A tibble with exercise data including columns like \code{id_exercise},
@@ -18,15 +40,23 @@ A tibble with exercise data including columns like \code{id_exercise},
 }
 \description{
 Retrieves the most recent exercises/workouts done by an athlete.
+Results are memoised to disk and persist across R sessions.
+Use \code{\link[=treinus_clear_memoise]{treinus_clear_memoise()}} to force a refresh.
 }
 \examples{
 \dontrun{
 session <- treinus_auth()
-exercises <- treinus_get_exercises(session, athlete_id = 50)
+# Single athlete
+exercises <- treinus_get_exercises(athlete_id = 50, session = session)
 
-# Or with environment variable set
-Sys.setenv(TREINUS_ATHLETE_ID = "50")
-exercises <- treinus_get_exercises(session)
+# Multiple athletes
+exercises <- treinus_get_exercises(athlete_id = c(50, 51, 52), session = session)
+
+# Using cached data without a session
+exercises <- treinus_get_exercises(athlete_id = 50, use_db = TRUE)
 }
 
+}
+\seealso{
+\code{\link[=treinus_clear_memoise]{treinus_clear_memoise()}}, \code{\link[=treinus_get_exercises_db]{treinus_get_exercises_db()}}
 }

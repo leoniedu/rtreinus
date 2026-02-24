@@ -19,49 +19,64 @@ library(sf)
 # ------------------------------------------------------------
 # INTERNAL: fastest predicted distance for one continuous track
 # ------------------------------------------------------------
-.fastest_distance_one <- function(
+
+.fastest_distance_vectorized <- function(
   x,
   y,
   time,
-  distance,
+  distance_m,
   min_time = NULL,
   max_speed = NULL
 ) {
   n <- length(x)
+  if (n < 2) {
+    return(NULL)
+  }
+
+  # Optimization 1: Pre-calculate constants and convert time once
+  time_numeric <- as.numeric(time)
+  dist_sq_threshold <- distance_m^2
   best_t_pred <- Inf
   best_i <- NA_integer_
   best_j <- NA_integer_
 
   for (i in seq_len(n - 1)) {
-    xi <- x[i]
-    yi <- y[i]
-    ti <- time[i]
+    # Optimization 2: Create a vector of all indices ahead of i
+    j_indices <- (i + 1):n
 
-    for (j in (i + 1):n) {
-      dx <- x[j] - xi
-      dy <- y[j] - yi
-      d <- sqrt(dx^2 + dy^2)
+    # Optimization 3: Vectorized subtraction and squaring
+    # This happens in C-speed, calculating all dx and dy at once
+    dx <- x[j_indices] - x[i]
+    dy <- y[j_indices] - y[i]
+    d_sq <- dx^2 + dy^2
 
-      if (d >= distance) {
-        dt_ij <- as.numeric(time[j] - ti)
+    # Optimization 4: Find the first index that exceeds our distance
+    # which() is highly optimized. [1] ensures we only take the first match.
+    match_idx <- which(d_sq >= dist_sq_threshold)[1]
 
-        # Optional plausibility filters
-        if (!is.null(min_time) && dt_ij < min_time) {
-          break
-        }
-        if (!is.null(max_speed) && (d / dt_ij) > max_speed) {
-          break
-        }
+    if (!is.na(match_idx)) {
+      # Map back to the actual index in the original vector
+      real_j <- j_indices[match_idx]
 
-        v_avg <- d / dt_ij
-        t_pred <- distance / v_avg
+      d <- sqrt(d_sq[match_idx])
+      dt_ij <- time_numeric[real_j] - time_numeric[i]
 
-        if (t_pred < best_t_pred) {
-          best_t_pred <- t_pred
-          best_i <- i
-          best_j <- j
-        }
-        break
+      # Optional plausibility filters
+      if (!is.null(min_time) && dt_ij < min_time) {
+        next
+      }
+      if (!is.null(max_speed) && (d / dt_ij) > max_speed) {
+        next
+      }
+
+      # Optimization 5: Simplified algebra
+      # t_pred = distance / (d / dt_ij) -> (distance * dt_ij) / d
+      t_pred <- (distance_m * dt_ij) / d
+
+      if (t_pred < best_t_pred) {
+        best_t_pred <- t_pred
+        best_i <- i
+        best_j <- real_j
       }
     }
   }
@@ -84,18 +99,23 @@ fastest_straight_distance <- function(
   sf_points,
   athlete_col,
   time_col,
-  distance = 500,
+  distance_m = 500,
   max_gap = 20, # seconds (DEFAULT)
   min_time = NULL,
-  max_speed = NULL
+  max_speed_kmh = Inf,
+  f_distance = .fastest_distance_vectorized
 ) {
   stopifnot(inherits(sf_points, "sf"))
+  stopifnot(lubridate::is.POSIXct(sf_points[[time_col]]))
   if (st_crs(sf_points)$units_gdal != "metre") {
     stop("CRS is geographic (degrees). Project to a planar CRS first.")
   }
 
   # Extract coordinates (must already be projected in meters)
   coords <- st_coordinates(sf_points)
+
+  ## max speed is in meters per second
+  max_speed <- max_speed_kmh * 1000 / 60 / 60
 
   dt <- data.table::as.data.table(sf_points)
   data.table::setDT(dt)
@@ -125,11 +145,11 @@ fastest_straight_distance <- function(
   # ----------------------------------------------------------
   seg_res <- dt[,
     {
-      out <- .fastest_distance_one(
+      out <- f_distance(
         x = x,
         y = y,
         time = get(time_col),
-        distance = distance,
+        distance_m = distance_m,
         min_time = min_time,
         max_speed = max_speed
       )
@@ -143,18 +163,29 @@ fastest_straight_distance <- function(
         d_end <- sqrt((x[j] - x[i])^2 + (y[j] - y[i])^2)
         dt_ij <- as.numeric(get(time_col)[j] - get(time_col)[i])
 
+        # cumulative distance along the track
+        cum_dist <- sum(
+          sqrt(
+            diff(x[i:j])^2 +
+              diff(y[i:j])^2
+          )
+        )
+
+        sinuosity <- cum_dist / d_end
+
         .(
-          distance_m = distance,
+          distance_m = distance_m,
           predicted_time_sec = out$t_pred_sec,
           avg_speed_mps = d_end / dt_ij,
           start_time = get(time_col)[i],
           end_time = get(time_col)[j],
-          chord_length_m = d_end,
+          straight_distance_m = d_end,
+          cumulative_distance_m = cum_dist,
+          sinuosity = cum_dist / d_end,
           start_x = x[i],
           start_y = y[i],
           end_x = x[j],
-          end_y = y[j],
-          segment_id = segment_id[1]
+          end_y = y[j]
         )
       }
     },

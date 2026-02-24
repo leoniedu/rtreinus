@@ -145,7 +145,7 @@ treinus_config <- function() {
     email_set = Sys.getenv("TREINUS_EMAIL", unset = "") != "",
     password_set = Sys.getenv("TREINUS_PASSWORD", unset = "") != "",
     team_set = team != "",
-    user_agent = "treinusr R package (httr2)"
+    user_agent = "rtreinus R package (httr2)"
   )
 
   if (has_creds) {

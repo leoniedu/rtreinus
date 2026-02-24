@@ -1,4 +1,4 @@
 library(testthat)
-library(treinusr)
+library(rtreinus)
 
-test_check("treinusr")
+test_check("rtreinus")

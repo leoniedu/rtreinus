@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
-# Example: Using treinusr to access Treinus workout data
+# Example: Using rtreinus to access Treinus workout data
 
-library(treinusr)
+library(rtreinus)
 library(tidyverse)
 
 # ── Setup ────────────────────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
-# treinusr (development version)
+# rtreinus (development version)
 
-## treinusr 0.1.0
+## rtreinus 0.1.0
 
 ### New Features
 
-* Initial release of treinusr
+* Initial release of rtreinus
 * `treinus_auth()` - Authenticate with Treinus webapp
 * `treinus_session_valid()` - Check if session is still valid
 * `treinus_get_workouts()` - Retrieve workout data

@@ -4,7 +4,7 @@
 \alias{resolve_team_id}
 \title{Resolve team_id from argument, session, or environment}
 \usage{
-resolve_team_id(team_id, session)
+resolve_team_id(team_id, session = NULL)
 }
 \description{
 Resolve team_id from argument, session, or environment

@@ -1,4 +1,4 @@
-Package: treinusr
+Package: rtreinus
 Title: Access Treinus Workout Data via Private API
 Version: 0.1.0
 Authors@R: 
@@ -24,7 +24,11 @@ Imports:
     dplyr (>= 1.1.0),
     tibble (>= 3.2.0),
     purrr (>= 1.0.0),
-    janitor (>= 2.2.0)
+    janitor (>= 2.2.0),
+    data.table,
+    RSQLite (>= 2.3.0),
+    memoise (>= 2.0.0),
+    dbplyr (>= 2.3.0)
 Suggests:
     testthat (>= 3.0.0),
     knitr,
@@ -32,6 +36,6 @@ Suggests:
     withr,
     getPass
 Config/testthat/edition: 3
-URL: https://github.com/yourusername/treinusr
-BugReports: https://github.com/yourusername/treinusr/issues
+URL: https://github.com/leoniedu/rtreinus
+BugReports: https://github.com/leoniedu/rtreinus/issues
 VignetteBuilder: knitr

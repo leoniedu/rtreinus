@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 # Advanced Example: Analyzing Treinus workout data with data.table
 
-library(treinusr)
+library(rtreinus)
 library(data.table)
 
 # ── Authentication ───────────────────────────────────────────────────────────

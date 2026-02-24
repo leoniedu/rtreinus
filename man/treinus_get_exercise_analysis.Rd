@@ -5,18 +5,16 @@
 \title{Get detailed exercise analysis}
 \usage{
 treinus_get_exercise_analysis(
-  session,
   exercise_id,
   athlete_id = NULL,
   team_id = NULL,
+  session = NULL,
   cache = TRUE,
   .progress = TRUE,
   .delay = 0.5
 )
 }
 \arguments{
-\item{session}{A treinus_session object from \code{\link[=treinus_auth]{treinus_auth()}}}
-
 \item{exercise_id}{Integer ID(s) of the exercise(s). Can be a vector.}
 
 \item{athlete_id}{Integer ID of the athlete (single value). If NULL, uses
@@ -24,6 +22,9 @@ treinus_get_exercise_analysis(
 
 \item{team_id}{Integer ID of the team (single value). If NULL, uses the
 team_id from session (if set during auth) or \code{TREINUS_TEAM_ID} environment variable.}
+
+\item{session}{A treinus_session object from \code{\link[=treinus_auth]{treinus_auth()}}. Optional when
+all requested exercises are already cached.}
 
 \item{cache}{Logical. Cache results locally? Default TRUE.
 Cached data is stored in the user cache directory (see \code{\link[=treinus_cache_dir]{treinus_cache_dir()}}).}
@@ -45,20 +46,20 @@ GPS records, heart rate, and other metrics.
 \dontrun{
 session <- treinus_auth()
 
-# Single exercise (with env vars set)
-analysis <- treinus_get_exercise_analysis(session, exercise_id = 57)
-
-# Or explicit IDs
+# Single exercise
 analysis <- treinus_get_exercise_analysis(
-  session,
   exercise_id = 57,
   athlete_id = 50,
-  team_id = 2994
+  team_id = 2994,
+  session = session
 )
 records <- analysis$data$Analysis$Records
 
 # Multiple exercises
-analyses <- treinus_get_exercise_analysis(session, exercise_id = c(57, 58, 59))
+analyses <- treinus_get_exercise_analysis(
+  exercise_id = c(57, 58, 59),
+  session = session
+)
 analyses[["57"]]$data$Analysis$Records
 }
 
