@@ -26,9 +26,13 @@ test_that("authentication requires credentials", {
 test_that("every request built in auth.R sets a user agent", {
   # The Treinus edge answers libcurl's default user agent with an empty 404,
   # so a bare httr2::request() anywhere in the login flow breaks authentication.
-  src <- readLines(test_path("..", "..", "R", "auth.R"))
+  # The skip has to come before the read: under R CMD check the sources are not
+  # beside the tests, and readLines() errors rather than returning nothing.
+  caminho <- test_path("..", "..", "R", "auth.R")
+  skip_if_not(file.exists(caminho), "auth.R not available (installed package)")
+  src <- readLines(caminho)
   request_lines <- grep("httr2::request\\(", src)
-  skip_if(length(request_lines) == 0, "auth.R not available (installed package)")
+  skip_if(length(request_lines) == 0, "no requests found")
 
   missing_ua <- Filter(
     function(i) !any(grepl("req_user_agent", src[i:min(i + 2, length(src))])),

@@ -33,10 +33,7 @@ Imports:
     dbplyr (>= 2.3.0),
     cachem,
     sf,
-    slider,
     lubridate,
-    tidyr,
-    ggplot2,
     stats
 Suggests:
     testthat (>= 3.0.0),
