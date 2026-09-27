@@ -99,9 +99,12 @@ treinus_set_credentials <- function(email = NULL, password = NULL, team_id = NUL
     new_lines <- c(new_lines, sprintf('TREINUS_ATHLETE_ID="%s"', as.integer(athlete_id)))
   }
 
-  # Write back to .Renviron
+  # Write back to .Renviron, readable only by this user. R creates files with
+  # the process umask, which on most systems leaves them world-readable, and
+  # this one holds a password in plain text.
   writeLines(new_lines, renviron_path)
-  
+  Sys.chmod(renviron_path, mode = "0600")
+
   cli::cli_alert_success("Credentials saved to {.file {renviron_path}}")
   cli::cli_alert_info("Restart R for changes to take effect, or run:")
   cli::cli_code("readRenviron('~/.Renviron')")
@@ -121,7 +124,7 @@ treinus_set_credentials <- function(email = NULL, password = NULL, team_id = NUL
 treinus_has_credentials <- function() {
   email <- Sys.getenv("TREINUS_EMAIL", unset = "")
   password <- Sys.getenv("TREINUS_PASSWORD", unset = "")
-  
+
   email != "" && password != ""
 }
 
@@ -138,7 +141,7 @@ treinus_has_credentials <- function() {
 #' @export
 treinus_config <- function() {
   has_creds <- treinus_has_credentials()
-  team <- Sys.getenv("TREINUS_TEAM", unset = "")
+  team <- Sys.getenv("TREINUS_TEAM_ID", unset = "")
 
   config <- list(
     credentials_configured = has_creds,
@@ -176,4 +179,33 @@ print.treinus_config <- function(x, ...) {
   }
 
   invisible(x)
+}
+
+
+#' Warn if the credentials file is readable by others
+#'
+#' `.Renviron` holds the Treinus password in plain text. R writes files with the
+#' process umask, which on most systems leaves them group- and world-readable,
+#' so a file written before [treinus_set_credentials()] started tightening
+#' permissions can still be exposed.
+#'
+#' @param path Path to check. Defaults to the user's `.Renviron`.
+#' @return Invisibly, `TRUE` if the permissions are safe.
+#' @export
+treinus_check_credential_permissions <- function(
+    path = file.path(Sys.getenv("HOME"), ".Renviron")) {
+  if (!file.exists(path)) return(invisible(TRUE))
+
+  mode <- file.info(path)$mode
+  # Anything beyond owner read/write is too much for a file holding a password.
+  too_open <- (as.integer(mode) %% 64L) != 0L
+  if (too_open) {
+    cli::cli_warn(c(
+      "{.file {path}} is readable by other users (mode {as.character(mode)}).",
+      "i" = "It stores your Treinus password in plain text.",
+      "i" = "Run {.code Sys.chmod('{path}', '0600')} to restrict it."
+    ))
+    return(invisible(FALSE))
+  }
+  invisible(TRUE)
 }

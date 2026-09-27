@@ -50,10 +50,6 @@ treinus_get_exercises <- function(
     )
   }
 
-  # Handle single vs multiple athlete IDs
-  athlete_ids <- resolve_athlete_id(athlete_id)
-  team_id <- resolve_team_id(team_id, session)
-
   if (is.null(session)) {
     if (!use_db) {
       cli::cli_abort(
@@ -61,8 +57,22 @@ treinus_get_exercises <- function(
       )
     }
     cli::cli_alert_info("No session provided, returning cached data from database.")
-    return(treinus_get_exercises_db())
+    result <- treinus_get_exercises_db()
+    # Filter by athlete/team when resolvable; neither is required for DB reads
+    db_athlete_ids <- tryCatch(resolve_athlete_id(athlete_id), error = function(e) NULL)
+    db_team_id <- tryCatch(resolve_team_id(team_id, session), error = function(e) NULL)
+    if (!is.null(db_athlete_ids)) {
+      result <- result[result$id_athlete %in% db_athlete_ids, ]
+    }
+    if (!is.null(db_team_id)) {
+      result <- result[result$id_team %in% db_team_id, ]
+    }
+    return(result)
   }
+
+  # Handle single vs multiple athlete IDs
+  athlete_ids <- resolve_athlete_id(athlete_id)
+  team_id <- resolve_team_id(team_id, session)
 
   # Always use the vectorized function regardless of single or multiple athletes
   result <- get_exercises_vectorized(
@@ -80,7 +90,8 @@ treinus_get_exercises <- function(
       inserted <- store_exercises_in_db(
         athlete_data,
         team_id,
-        aid
+        aid,
+        overwrite = overwrite_db
       )
       cli::cli_alert_success(
         "Stored {inserted} exercise{?s} in database for athlete {aid}"
@@ -906,13 +917,16 @@ init_db <- function() {
 #' @param exercises A tibble with exercise data
 #' @param team_id Team ID associated with the exercises
 #' @param athlete_id Athlete ID associated with the exercises
+#' @param overwrite Logical. If TRUE, update existing records on key conflict.
+#'   If FALSE, skip duplicates. Default FALSE.
 #'
-#' @return Number of rows inserted/updated
+#' @return Number of rows actually inserted/updated
 #' @keywords internal
 store_exercises_in_db <- function(
   exercises,
   team_id,
-  athlete_id
+  athlete_id,
+  overwrite = FALSE
 ) {
   if (nrow(exercises) == 0) return(0L)
 
@@ -920,12 +934,13 @@ store_exercises_in_db <- function(
   con <- init_db()
   on.exit(RSQLite::dbDisconnect(con))
 
-  # Write new data to temporary table
+  # Write new data to a connection-local temporary table
   RSQLite::dbWriteTable(
     con, "tmp_exercises",
     value = exercises,
     row.names = FALSE,
-    overwrite = TRUE
+    overwrite = TRUE,
+    temporary = TRUE
   )
 
   if (!RSQLite::dbExistsTable(con, "exercises")) {
@@ -934,6 +949,11 @@ store_exercises_in_db <- function(
       con,
       "CREATE TABLE exercises AS SELECT * FROM tmp_exercises"
     )
+    RSQLite::dbExecute(
+      con,
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_exercise ON exercises (id_team, id_athlete, id_exercise)"
+    )
+    inserted <- nrow(exercises)
   } else {
     # Schema evolution: handle column differences
     old_cols <- RSQLite::dbListFields(con, "exercises")
@@ -970,27 +990,36 @@ store_exercises_in_db <- function(
       )
     }
 
-    # Upsert with all columns aligned (exclude key cols from update set)
-    all_cols <- union(old_cols, new_cols)
-    update_cols <- setdiff(all_cols, key_cols)
-
-    sql <- dbplyr::sql_query_upsert(
-      con = con,
-      table = "exercises",
-      from = "tmp_exercises",
-      by = key_cols,
-      update_cols = update_cols
+    # Conflict handling below requires the unique index
+    RSQLite::dbExecute(
+      con,
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_exercise ON exercises (id_team, id_athlete, id_exercise)"
     )
-    RSQLite::dbExecute(con, sql)
+
+    all_cols <- union(old_cols, new_cols)
+
+    if (overwrite) {
+      # Upsert with all columns aligned (exclude key cols from update set)
+      update_cols <- setdiff(all_cols, key_cols)
+      sql <- dbplyr::sql_query_upsert(
+        con = con,
+        table = "exercises",
+        from = "tmp_exercises",
+        by = key_cols,
+        update_cols = update_cols
+      )
+    } else {
+      # Insert new rows only, skip existing keys
+      col_list <- paste(sprintf('"%s"', all_cols), collapse = ", ")
+      sql <- sprintf(
+        "INSERT OR IGNORE INTO exercises (%s) SELECT %s FROM tmp_exercises",
+        col_list, col_list
+      )
+    }
+    inserted <- RSQLite::dbExecute(con, sql)
   }
 
-  # Ensure unique index exists
-  RSQLite::dbExecute(
-    con,
-    "CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_exercise ON exercises (id_team, id_athlete, id_exercise)"
-  )
-
-  nrow(exercises)
+  as.integer(inserted)
 }
 
 
@@ -1041,10 +1070,14 @@ clear_exercises_db <- function(
 
   if (!is.null(older_than)) {
     query <- paste(query, "AND start < ?")
-    params <- c(params, older_than)
+    params <- c(params, as.character(older_than))
   }
 
-  result <- RSQLite::dbExecute(con, query, unlist(params))
+  result <- if (length(params) > 0) {
+    RSQLite::dbExecute(con, query, params = params)
+  } else {
+    RSQLite::dbExecute(con, query)
+  }
   cli::cli_alert_success("Deleted {result} exercise record{?s} from database.")
   return(invisible(result))
 }
@@ -1116,11 +1149,7 @@ treinus_db_info <- function() {
 treinus_get_exercises_db <- function() {
   con <- init_db()
   on.exit(RSQLite::dbDisconnect(con))
-  # Return a lazy dplyr table using dbplyr
-  # The connection will remain open for the lifetime of the returned object
-  # and will be closed when the object is garbage collected
-  res <- dplyr::tbl(con, "exercises") |> dplyr::collect()
-  res
+  dplyr::tbl(con, "exercises") |> dplyr::collect()
 }
 
 
@@ -1221,4 +1250,49 @@ get_exercises_vectorized <- function(
   )
 
   dplyr::bind_rows(results)
+}
+
+
+#' Training heart-rate zones for an athlete
+#'
+#' Treinus carries per-athlete zone boundaries in each exercise analysis. They
+#' are worth preferring over anything computed here: their upper bounds track
+#' age but sit several beats above a naive `220 - age`, so they come from a
+#' better formula or from a measured maximum, and either way they are the
+#' numbers the athlete's own coaching is based on.
+#'
+#' Not every athlete has them. The caller has to handle their absence rather
+#' than substituting a guess.
+#'
+#' @param analysis An exercise analysis, from [treinus_get_exercise_analysis()].
+#'
+#' @return A tibble of `id_athlete`, `zone` (1 upward), `fc_min` and `fc_max`,
+#'   with zero rows when the athlete has no zones defined.
+#'
+#' @examples
+#' \dontrun{
+#' a <- treinus_get_exercise_analysis(exercise_id = 678, athlete_id = 8)
+#' treinus_extract_zones(a)
+#' }
+#' @export
+treinus_extract_zones <- function(analysis) {
+  empty <- tibble::tibble(id_athlete = integer(), zone = integer(),
+                          fc_min = numeric(), fc_max = numeric())
+  z <- analysis$data$Analysis$TrainingZones
+  if (is.null(z) || !length(z)) return(empty)
+
+  out <- purrr::imap(z, function(k, i) {
+    tibble::tibble(
+      zone = as.integer(i),
+      fc_min = as.numeric(k$HeartRateMin %||% NA),
+      fc_max = as.numeric(k$HeartRateMax %||% NA)
+    )
+  }) |>
+    purrr::list_rbind()
+
+  out <- out[!is.na(out$fc_min) & !is.na(out$fc_max), , drop = FALSE]
+  if (!nrow(out)) return(empty)
+
+  out$id_athlete <- as.integer(analysis$data$Analysis$IdAthlete)
+  out[c("id_athlete", "zone", "fc_min", "fc_max")]
 }

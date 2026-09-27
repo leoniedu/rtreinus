@@ -4,7 +4,7 @@
 \alias{store_exercises_in_db}
 \title{Store exercises in database}
 \usage{
-store_exercises_in_db(exercises, team_id, athlete_id)
+store_exercises_in_db(exercises, team_id, athlete_id, overwrite = FALSE)
 }
 \arguments{
 \item{exercises}{A tibble with exercise data}
@@ -12,9 +12,12 @@ store_exercises_in_db(exercises, team_id, athlete_id)
 \item{team_id}{Team ID associated with the exercises}
 
 \item{athlete_id}{Athlete ID associated with the exercises}
+
+\item{overwrite}{Logical. If TRUE, update existing records on key conflict.
+If FALSE, skip duplicates. Default FALSE.}
 }
 \value{
-Number of rows inserted/updated
+Number of rows actually inserted/updated
 }
 \description{
 Stores exercise data in the local SQLite database. Handles schema evolution

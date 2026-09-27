@@ -117,7 +117,7 @@ treinus_login <- function(
   login_url <- paste0(base_url, "/Default.aspx")
 
   initial_req <- httr2::request(login_url) |>
-    httr2::req_user_agent("rtreinus R package (httr2)")
+    httr2::req_user_agent(treinus_ua())
 
   initial_resp <- initial_req |>
     httr2::req_perform()
@@ -154,6 +154,7 @@ treinus_login <- function(
 
   # Step 3: Perform login (don't follow redirects to capture cookies)
   login_resp <- httr2::request(login_url) |>
+    httr2::req_user_agent(treinus_ua()) |>
     httr2::req_body_form(!!!login_body) |>
     httr2::req_method("POST") |>
     httr2::req_options(followlocation = FALSE) |>
@@ -213,6 +214,7 @@ treinus_login <- function(
 
   # Follow the redirect with cookies
   redirect_resp <- httr2::request(redirect_url) |>
+    httr2::req_user_agent(treinus_ua()) |>
     httr2::req_headers(Cookie = cookie_string) |>
     httr2::req_error(is_error = \(resp) FALSE) |>
     httr2::req_perform()
@@ -344,6 +346,7 @@ treinus_select_team <- function(pending_login, team = NULL) {
   )
 
   final_resp <- httr2::request(team_select_url) |>
+    httr2::req_user_agent(treinus_ua()) |>
     httr2::req_headers(
       Cookie = cookies,
       Referer = team_select_url,
@@ -410,6 +413,15 @@ print.treinus_pending_login <- function(x, ...) {
 
 
 # Internal helpers --------------------------------------------------------
+
+#' User agent for all Treinus requests
+#'
+#' The Treinus edge rejects libcurl's default user agent with an empty 404,
+#' so every request must set one explicitly.
+#' @keywords internal
+treinus_ua <- function() {
+  "rtreinus R package (httr2)"
+}
 
 #' Extract teams from team selection page
 #' @keywords internal
@@ -524,7 +536,7 @@ merge_cookies <- function(existing_cookies, response) {
 #' @keywords internal
 create_session <- function(base_url, cookies, response, team_id = NULL) {
   authenticated_req <- httr2::request(base_url) |>
-    httr2::req_user_agent("rtreinus R package (httr2)") |>
+    httr2::req_user_agent(treinus_ua()) |>
     httr2::req_headers(Cookie = cookies)
 
   structure(

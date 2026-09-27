@@ -1,0 +1,58 @@
+schema: 1
+session:
+  date: '2026-09-26'
+  source: data/treino_20260926.rds
+  tz: America/Bahia
+  crs: .na.integer
+exercises:
+  exclude: 223
+clock:
+  local:
+  - 36
+  - 50
+crews:
+  include:
+  - Canoa 1
+  - Canoa 2
+  members:
+    Canoa 1:
+    - 5
+    - 7
+    - 8
+    - 37
+    - 53
+    Canoa 2:
+    - 36
+    - 38
+    - 48
+    - 50
+    - 54
+    Canoa 3:
+    - 46
+    - 47
+    - 60
+  steerer:
+    Canoa 1: 8
+    Canoa 2: 36
+exclude:
+  athlete:
+  - 36
+  - 50
+  metric:
+  - heart_rate
+  - heart_rate
+analysis:
+  moving_ms: 0.5
+  max_sample_gap_s: 30.0
+  piece_frac: 0.85
+  piece_min_s: 60.0
+  piece_cruise_floor_kmh: 3.0
+  cadence_bin_s: 30.0
+  cadence_smooth_s: 120.0
+  cadence_min_on_line: 3.0
+  reference_distance_m: 14000.0
+  hr_zones:
+  - 120.0
+  - 140.0
+  - 160.0
+  bin_s: 10.0

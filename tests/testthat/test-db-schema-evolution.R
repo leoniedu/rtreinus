@@ -133,7 +133,7 @@ test_that("store_exercises_in_db preserves columns missing in new data", {
   })
 })
 
-test_that("store_exercises_in_db upserts existing rows", {
+test_that("store_exercises_in_db upserts existing rows with overwrite = TRUE", {
   withr::with_tempdir({
     local_mocked_bindings(
       treinus_db_path = function() file.path(getwd(), "test.db")
@@ -155,7 +155,7 @@ test_that("store_exercises_in_db upserts existing rows", {
       id_exercise = 100L,
       distance = 9999
     )
-    store_exercises_in_db(updated, team_id = 1, athlete_id = 50)
+    store_exercises_in_db(updated, team_id = 1, athlete_id = 50, overwrite = TRUE)
 
     con <- RSQLite::dbConnect(RSQLite::SQLite(), file.path(getwd(), "test.db"))
     on.exit(RSQLite::dbDisconnect(con))

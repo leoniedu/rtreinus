@@ -4,3 +4,8 @@
 ^dev-setup\.R$
 ^\.github$
 ^LICENSE\.md$
+^test_init_db\.R$
+^test_init_db_simple\.R$
+^\.DS_Store$
+^\.claude$
+^\.remember$

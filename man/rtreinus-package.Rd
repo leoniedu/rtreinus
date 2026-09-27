@@ -6,7 +6,7 @@
 \alias{rtreinus-package}
 \title{rtreinus: Access Treinus Workout Data via Private API}
 \description{
-Provides authenticated access to the Treinus webapp API (https://webapp.treinus.com.br) for retrieving workout data, training plans, and performance metrics. Handles ASP.NET WebForms authentication and session management.
+Provides authenticated access to the Treinus webapp API (https://webapp.treinus.com.br) for retrieving workout data, training plans, and performance metrics. Handles ASP.NET WebForms authentication and session management. Also provides a session-analysis pipeline for crew boats, which infers crew membership and seat order from GPS, flags badly measured heart-rate and cadence traces, and computes per-crew pace, blocks and stroke-rate metrics.
 }
 \seealso{
 Useful links:
@@ -18,6 +18,11 @@ Useful links:
 }
 \author{
 \strong{Maintainer}: Eduardo Leoni \email{e.leoni@gmail.com} (\href{https://orcid.org/0000-0003-0955-5232}{ORCID})
+
+Authors:
+\itemize{
+  \item Eduardo Leoni \email{e.leoni@gmail.com} (\href{https://orcid.org/0000-0003-0955-5232}{ORCID})
+}
 
 }
 \keyword{internal}

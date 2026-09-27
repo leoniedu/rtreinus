@@ -14,7 +14,11 @@
 # No interpolation of geometry or time.
 # ============================================================
 
-library(sf)
+# data.table NSE columns
+utils::globalVariables(c(
+  ".", "athlete", "avg_speed_kmh", "avg_speed_mps", "predicted_time_sec",
+  "segment_id", "time_num", "x", "y"
+))
 
 # ------------------------------------------------------------
 # INTERNAL: fastest predicted distance for one continuous track
@@ -106,13 +110,13 @@ fastest_straight_distance <- function(
   f_distance = .fastest_distance_vectorized
 ) {
   stopifnot(inherits(sf_points, "sf"))
-  stopifnot(lubridate::is.POSIXct(sf_points[[time_col]]))
-  if (st_crs(sf_points)$units_gdal != "metre") {
+  stopifnot(inherits(sf_points[[time_col]], "POSIXct"))
+  if (sf::st_crs(sf_points)$units_gdal != "metre") {
     stop("CRS is geographic (degrees). Project to a planar CRS first.")
   }
 
   # Extract coordinates (must already be projected in meters)
-  coords <- st_coordinates(sf_points)
+  coords <- sf::st_coordinates(sf_points)
 
   ## max speed is in meters per second
   max_speed <- max_speed_kmh * 1000 / 60 / 60
@@ -216,7 +220,7 @@ fastest_straight_distance <- function(
 fastest_straight_geometry <- function(result_dt, crs) {
   lines <- mapply(
     function(x1, y1, x2, y2) {
-      st_linestring(
+      sf::st_linestring(
         matrix(c(x1, y1, x2, y2), ncol = 2, byrow = TRUE)
       )
     },
@@ -227,8 +231,8 @@ fastest_straight_geometry <- function(result_dt, crs) {
     SIMPLIFY = FALSE
   )
 
-  st_as_sf(
+  sf::st_as_sf(
     result_dt,
-    geometry = st_sfc(lines, crs = crs)
+    geometry = sf::st_sfc(lines, crs = crs)
   )
 }

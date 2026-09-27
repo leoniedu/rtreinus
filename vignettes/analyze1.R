@@ -1,14 +1,20 @@
 devtools::load_all()
+library(dplyr)
 
 session <- treinus_auth()
-## current (2026-01-29) max(id_athlete)=56
-exercises_new <- treinus_get_exercises(session, athlete_id = 1:70)
+## current (2026-08-29) max(id_athlete)=64
+exercises_new <- treinus_get_exercises(athlete_id = 61:70, session = session)
 
 exercises <- treinus_get_exercises_db()
-exercises_today <- exercises%>%
-  filter(as.Date(start)==Sys.Date(), start_time_as_string>="05:00", start_time_as_string<="07:00", !is.na(speed))
 
-exercise_analysis <- purrr::pmap(exercises_today, function(id_exercise, id_athlete, ...)  treinus_get_exercise_analysis(session, exercise_id=id_exercise, athlete_id=id_athlete))
+exercises_today <- exercises%>%
+  dplyr::filter(as.Date(start)=="2026-08-29", 
+start_time_as_string>="04:00", 
+start_time_as_string<="10:00", !is.na(speed),
+    ## skip aborted recordings (e.g. accidental 2-min runs); server can't analyze them
+    total_time > 300)
+
+exercise_analysis <- purrr::pmap(exercises_today, function(id_exercise, id_athlete, ...)  treinus_get_exercise_analysis(exercise_id = id_exercise, athlete_id = id_athlete, session = session))
 
 exercise_records <- purrr::map(exercise_analysis, ~tibble(id_athlete=.x$data$Analysis$IdAthlete,
   id_exercise=.x$data$Analysis$IdExercise,
@@ -26,10 +32,36 @@ lon=position_long * 180 / 2^31
   st_as_sf(coords=c("lon", "lat"), remove = FALSE, crs=4326)%>%
   st_transform(crs=31984)
 
-fast500 <- fastest_straight_distance(sf_points = exercise_records_sf, athlete_col = "id_athlete", time_col = "timestamp", distance_m = 100)%>%
+## 30-second running average of heart rate, centered on each reading.
+## slide_index_dbl() indexes the window by timestamp rather than by row,
+## so the irregular sampling (1-9 s between readings) and the gaps
+## between intervals both stay honest.
+caveiras <- c(38,48,50,54,58)
+lemes <- c(8,38)
+target <- c(8,38,50)
+exercise_records_sf2 <- exercise_records_sf%>%
+    filter(id_athlete%in%target)%>%
+  mutate(timestamp=if_else(id_athlete!=50, 
+    timestamp-60*60*3, timestamp))%>%
+  #mutate(id_athlete=case_match(id_athlete, c(50,54) ~ "Voga/Contra-voga", c(48,58)~"Força", 38 ~"Leme"))%>%
+  arrange(id_athlete, timestamp)%>%
+  group_by(id_athlete)%>%
+  mutate(heart_rate_30s = slider::slide_index_dbl(
+    heart_rate, timestamp, mean, na.rm = TRUE,
+    .before = lubridate::dseconds(15), .after = lubridate::dseconds(15)
+  ))%>%
+  ungroup()
+
+library(ggplot2)
+ggplot(aes(x=timestamp, y=heart_rate_30s, color=fullname_athlete),
+data=exercise_records_sf2) +
+  geom_line() 
+
+fast <- fastest_straight_distance(sf_points = exercise_records_sf, athlete_col = "id_athlete", time_col = "timestamp", 
+distance_m = 1000)%>%
   left_join(exercise_records_sf%>%st_drop_geometry()%>%distinct(id_athlete,fullname_athlete))
 
-View(fast500%>%
+View(fast)
 
 fast500
 
@@ -82,4 +114,3 @@ boia_imp <- boia%>%
     mutate(ip_value=na.approx(value, na.rm=TRUE))%>%
     select(-value)%>%
     tidyr::pivot_wider(values_from ="ip_value")
-}

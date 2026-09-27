@@ -11,7 +11,7 @@ Character string with the cache directory path.
 }
 \description{
 Returns the path to the rtreinus cache directory, following
-platform-specific conventions via \code{\link[tools:userdir]{tools::R_user_dir()}}.
+platform-specific conventions via \code{\link[tools:R_user_dir]{tools::R_user_dir()}}.
 }
 \examples{
 treinus_cache_dir()

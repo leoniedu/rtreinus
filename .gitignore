@@ -1,0 +1,22 @@
+# Credentials and session state - never commit these
+.Renviron
+.Rprofile
+.Rhistory
+.RData
+.Ruserdata
+
+# R build artefacts
+*.Rcheck/
+*.tar.gz
+/.quarto/
+**/*.quarto_ipynb
+
+# macOS
+.DS_Store
+
+# Session recordings and rendered reports: real athletes' names, GPS tracks and
+# heart rates. This repo is public, so these stay local and are re-fetched.
+vignettes/data/
+vignettes/*.html
+vignettes/*_files/
+output/

@@ -9,11 +9,13 @@ Authors@R:
 Description: Provides authenticated access to the Treinus webapp API 
     (https://webapp.treinus.com.br) for retrieving workout data, training plans,
     and performance metrics. Handles ASP.NET WebForms authentication and session
-    management.
+    management. Also provides a session-analysis pipeline for crew boats, which
+    infers crew membership and seat order from GPS, flags badly measured
+    heart-rate and cadence traces, and computes per-crew pace, blocks and
+    stroke-rate metrics.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Depends: 
     R (>= 4.1.0)
 Imports:
@@ -28,14 +30,27 @@ Imports:
     data.table,
     RSQLite (>= 2.3.0),
     memoise (>= 2.0.0),
-    dbplyr (>= 2.3.0)
+    dbplyr (>= 2.3.0),
+    cachem,
+    sf,
+    slider,
+    lubridate,
+    tidyr,
+    ggplot2,
+    stats
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
     withr,
-    getPass
+    getPass,
+    yaml,
+    shiny,
+    ggrepel,
+    gt,
+    quarto
 Config/testthat/edition: 3
 URL: https://github.com/leoniedu/rtreinus
 BugReports: https://github.com/leoniedu/rtreinus/issues
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0

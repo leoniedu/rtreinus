@@ -22,3 +22,18 @@ test_that("authentication requires credentials", {
     "Credentials not provided"
   )
 })
+
+test_that("every request built in auth.R sets a user agent", {
+  # The Treinus edge answers libcurl's default user agent with an empty 404,
+  # so a bare httr2::request() anywhere in the login flow breaks authentication.
+  src <- readLines(test_path("..", "..", "R", "auth.R"))
+  request_lines <- grep("httr2::request\\(", src)
+  skip_if(length(request_lines) == 0, "auth.R not available (installed package)")
+
+  missing_ua <- Filter(
+    function(i) !any(grepl("req_user_agent", src[i:min(i + 2, length(src))])),
+    request_lines
+  )
+
+  expect_equal(missing_ua, integer(0))
+})
