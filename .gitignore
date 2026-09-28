@@ -20,3 +20,7 @@ vignettes/data/
 vignettes/*.html
 vignettes/*_files/
 output/
+
+# Analises com nomes de atletas ligados a dados fisiologicos: repo publico.
+vignettes/treino_*.qmd
+vignettes/cachoeira_*.qmd
