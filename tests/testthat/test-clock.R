@@ -111,7 +111,11 @@ test_that("the exact branch works from the committed fixture alone", {
   # The exercises table is built here instead. `start_time_as_string` is the local start
   # a device reported, so for the two devices that wrote local time it is their first
   # sample's clock face, and for the eight that wrote UTC it is three hours earlier.
-  # That is the ground truth the fixture was chosen for.
+  # This is circular about *which* devices those are: the table is built from LOCAL, so
+  # it cannot confirm LOCAL. It confirms the arithmetic of `clock_from_exercises` —
+  # given a table, does it recover the offsets and judge everybody. What corroborates
+  # LOCAL is the first test in this file, which reaches {36, 50} from the records alone
+  # by clustering, an entirely different method.
   #
   # Read with "a trimmed recording is not mistaken for a clock offset" above, which
   # feeds the same branch a real exercises table and expects it to decline: this
