@@ -102,3 +102,41 @@ test_that("`local` means that athlete is three hours later than the rest", {
   # -3 and was wrong.
   expect_equal(desvio(todos, 1L) - as.numeric(base), 0)
 })
+
+test_that("the exact branch works from the committed fixture alone", {
+  # The exact branch is what production uses, and the only test of it needed a local
+  # database and an untracked session file — so in a fresh clone the path that matters
+  # skipped and the one R warns about was all that ran.
+  #
+  # The exercises table is built here instead. `start_time_as_string` is the local start
+  # a device reported, so for the two devices that wrote local time it is their first
+  # sample's clock face, and for the eight that wrote UTC it is three hours earlier.
+  # That is the ground truth the fixture was chosen for.
+  #
+  # Read with "a trimmed recording is not mistaken for a clock offset" above, which
+  # feeds the same branch a real exercises table and expects it to decline: this
+  # fixture's recordings begin 32 minutes after their reported start, and rounding that
+  # to an hour would mislabel every device. So one of the pair covers the arithmetic on
+  # recordings that begin when they say they do, and the other covers the gate that
+  # refuses when they do not.
+  r <- fixture()
+  r$.ts <- as_treinus_time(r$timestamp)
+
+  primeiro <- r |>
+    dplyr::summarise(inicio = min(.data$.ts), .by = c("id_athlete", "id_exercise"))
+
+  ex <- primeiro |>
+    dplyr::mutate(
+      local = dplyr::if_else(.data$id_athlete %in% LOCAL,
+                             .data$inicio, .data$inicio - 3 * 3600),
+      start_time_as_string = format(.data$local, "%H:%M:%S", tz = "UTC")
+    ) |>
+    dplyr::select("id_exercise", "id_athlete", "start_time_as_string")
+
+  expect_no_warning(out <- treinus_detect_clock(r, ex))
+  expect_equal(unique(out$method), "exercises")
+  expect_setequal(out$id_athlete[out$is_local], LOCAL)
+  # And every athlete is judged, which is what the exact branch refuses to do
+  # partially.
+  expect_setequal(out$id_athlete, unique(r$id_athlete))
+})
