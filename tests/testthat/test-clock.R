@@ -66,3 +66,39 @@ test_that("a trimmed recording is not mistaken for a clock offset", {
   expect_warning(out <- treinus_detect_clock(fixture(), ex), "clustering")
   expect_equal(unique(out$method), "clustered")
 })
+
+test_that("`local` means that athlete is three hours later than the rest", {
+  # The sign of this is the contract between two different parameterisations, and
+  # getting it backwards would double a clock error instead of removing it.
+  #
+  # Here the athlete listed in `local` is the one left alone, and everybody else is
+  # moved by tz_offset_hours — so the *net* effect is that athlete three hours later
+  # than the rest. The iOS port says the same thing as "+3 hours for that athlete",
+  # which is only equivalent because of that inversion.
+  base <- as.POSIXct("2026-09-26 07:00:00", tz = "UTC")
+  records <- data.frame(
+    id_athlete = rep(c(1L, 2L), each = 3L),
+    id_exercise = rep(c(1L, 2L), each = 3L),
+    timestamp = rep(base + c(0, 10, 20), times = 2)
+  )
+
+  todos <- treinus_fix_clock(records, local = integer())
+  um <- treinus_fix_clock(records, local = 1L)
+
+  desvio <- function(fixed, quem) {
+    min(as.numeric(fixed$ts[fixed$id_athlete == quem]))
+  }
+
+  expect_equal((desvio(um, 1L) - desvio(todos, 1L)) / 3600, 3)
+  expect_equal(desvio(um, 2L) - desvio(todos, 2L), 0)
+
+  # And with nobody listed, the epoch does not move at all. The subtraction of
+  # tz_offset_hours and the `force_tz` relabel cancel: the shift moves the instant
+  # back three hours and the relabel reads the same wall clock as Bahia, which puts
+  # it back. So the whole net effect of this function is to move the listed athletes
+  # three hours later, and to leave everyone else exactly as they arrived.
+  #
+  # Measured rather than reasoned about — the first version of this test predicted
+  # -3 and was wrong.
+  expect_equal(desvio(todos, 1L) - as.numeric(base), 0)
+})
